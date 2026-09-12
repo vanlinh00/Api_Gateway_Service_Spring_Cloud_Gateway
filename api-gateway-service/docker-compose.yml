@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. Redis Server (Lưu trữ JWT Blacklist với tính năng TTL tự động giải phóng bộ nhớ)
+  redis:
+    image: redis:7.4-alpine
+    container_name: redis-gateway
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 2. Mock User Auth Service (Dùng httpbin hoặc mock server mô phỏng backend service)
+  user-auth-service:
+    image: kennethreitz/httpbin
+    container_name: mock-user-auth-service
+    ports:
+      - "8081:80"
+
+  # 3. API Gateway Service
+  api-gateway-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - USER_AUTH_SERVICE_URI=http://user-auth-service:80
+      - JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis-data:
