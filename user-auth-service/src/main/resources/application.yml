@@ -1,0 +1,52 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-auth-service
+
+  # Redis Configuration for JWT Blacklist / Revocation
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 3000ms
+
+  # Spring Security OAuth2 Resource Server configuration for Keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/master/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/master}
+
+# Custom Keycloak JWT & Blacklist Properties (Strictly Asymmetric RS256)
+jwt:
+  # Keycloak JWKS public key certificate endpoint
+  jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/master/protocol/openid-connect/certs}
+  # Expected Keycloak realm issuer (claim 'iss')
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/master}
+  # Redis key prefix for revoked token IDs (JTI)
+  blacklist-prefix: "jwt:blacklist:"
+  # Whitelisted public paths that bypass JWT authentication & blacklist verification
+  excluded-paths:
+    - /api/v1/auth/login
+    - /api/v1/auth/register
+    - /actuator/health
+    - /actuator/info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.example.userauth: DEBUG

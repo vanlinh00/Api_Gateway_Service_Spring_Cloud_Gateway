@@ -71,11 +71,9 @@ spring:
 
 # Custom JWT & Keycloak Blacklist Properties
 jwt:
-  # Keycloak JWKS & Realm settings
-  jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:}
-  issuer-uri: ${KEYCLOAK_ISSUER_URI:}
-  # Secret key fallback for HMAC (HS256) environments
-  secret-key: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  # Keycloak JWKS & Realm settings (Asymmetric RSA/EC signature verification)
+  jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/master/protocol/openid-connect/certs}
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/master}
   # Redis Key prefix for blacklisted token IDs
   blacklist-prefix: "jwt:blacklist:"
   # Whitelisted public paths that bypass JWT Blacklist verification

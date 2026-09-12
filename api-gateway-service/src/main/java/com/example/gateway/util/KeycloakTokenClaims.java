@@ -1,12 +1,12 @@
 package com.example.gateway.util;
 
 import com.nimbusds.jwt.JWTClaimsSet;
-import io.jsonwebtoken.Claims;
 
 import java.util.*;
 
 /**
  * Normalized token claims representation supporting Keycloak OIDC specifications.
+ * Exclusively parsed from Nimbus JOSE / JWT structures.
  */
 public class KeycloakTokenClaims {
 
@@ -46,32 +46,6 @@ public class KeycloakTokenClaims {
                         if (r != null) {
                             claims.getRealmRoles().add(r.toString());
                         }
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-
-        return claims;
-    }
-
-    public static KeycloakTokenClaims fromJjwt(Claims jjwtClaims, String rawToken) {
-        KeycloakTokenClaims claims = new KeycloakTokenClaims();
-        claims.setJti(jjwtClaims.getId());
-        claims.setSubject(jjwtClaims.getSubject());
-        claims.setIssuer(jjwtClaims.getIssuer());
-        claims.setExpiration(jjwtClaims.getExpiration());
-        claims.setIssuedAt(jjwtClaims.getIssuedAt());
-
-        String username = jjwtClaims.get("preferred_username", String.class);
-        claims.setUsername(username != null ? username : jjwtClaims.getSubject());
-        claims.setEmail(jjwtClaims.get("email", String.class));
-
-        try {
-            Map<?, ?> realmAccess = jjwtClaims.get("realm_access", Map.class);
-            if (realmAccess != null && realmAccess.get("roles") instanceof List<?> rolesList) {
-                for (Object r : rolesList) {
-                    if (r != null) {
-                        claims.getRealmRoles().add(r.toString());
                     }
                 }
             }
