@@ -5,7 +5,7 @@ spring:
   application:
     name: api-gateway-service
 
-  # Cấu hình Spring Data Redis Reactive (Sử dụng Lettuce Driver Non-blocking)
+  # Spring Data Redis Reactive (Lettuce Non-blocking driver)
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -21,20 +21,35 @@ spring:
           max-wait: 2000ms
         shutdown-timeout: 100ms
 
-  # Cấu hình Spring Cloud Gateway Routes
+  # Spring Security OAuth2 Resource Server for Keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/master/protocol/openid-connect/certs}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/master}
+
+  # Spring Cloud Gateway Routing Configuration
   cloud:
     gateway:
       routes:
-        # Route 1: Proxy đến User Authentication Service
-        - id: user-auth-service-route
-          uri: ${USER_AUTH_SERVICE_URI:http://localhost:8081}
+        # Route 1: Keycloak Auth Endpoint (Proxy or direct pass-through)
+        - id: keycloak-auth-route
+          uri: ${KEYCLOAK_URI:http://localhost:8180}
           predicates:
-            - Path=/api/v1/auth/**, /api/v1/users/**
+            - Path=/realms/**, /resources/**
           filters:
             - AddRequestHeader=X-Gateway-Name, api-gateway-service
-            - AddResponseHeader=X-Gateway-Processed-Time, #{T(java.lang.System).currentTimeMillis()}
 
-        # Route 2: Ví dụ proxy đến Order Service (Minh họa cấu hình nhiều service)
+        # Route 2: User Microservice
+        - id: user-service-route
+          uri: ${USER_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - AddRequestHeader=X-Gateway-Name, api-gateway-service
+
+        # Route 3: Order Microservice
         - id: order-service-route
           uri: ${ORDER_SERVICE_URI:http://localhost:8082}
           predicates:
@@ -42,7 +57,6 @@ spring:
           filters:
             - AddRequestHeader=X-Gateway-Name, api-gateway-service
 
-      # Cấu hình CORS toàn cục cho Gateway (tùy chọn nhưng rất quan trọng)
       globalcors:
         cors-configurations:
           '[/**]':
@@ -55,21 +69,23 @@ spring:
               - OPTIONS
             allowedHeaders: "*"
 
-# Cấu hình tùy chỉnh cho JWT & Redis Blacklist
+# Custom JWT & Keycloak Blacklist Properties
 jwt:
-  # Base64-encoded secret key 256-bit (HS256) tối thiểu 32 ký tự
+  # Keycloak JWKS & Realm settings
+  jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:}
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:}
+  # Secret key fallback for HMAC (HS256) environments
   secret-key: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-  # Prefix lưu trữ key trong Redis để tránh xung đột
+  # Redis Key prefix for blacklisted token IDs
   blacklist-prefix: "jwt:blacklist:"
-  # Các URI công khai (Public) không yêu cầu kiểm tra token
+  # Whitelisted public paths that bypass JWT Blacklist verification
   excluded-paths:
-    - /api/v1/auth/login
-    - /api/v1/auth/register
-    - /api/v1/auth/refresh-token
+    - /realms/**
+    - /resources/**
+    - /api/v1/auth/**
     - /actuator/health
     - /actuator/info
 
-# Cấu hình Actuator endpoint giám sát
 management:
   endpoints:
     web:
@@ -79,7 +95,6 @@ management:
     health:
       show-details: always
 
-# Cấu hình Logging
 logging:
   level:
     root: INFO

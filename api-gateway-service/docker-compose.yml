@@ -1,7 +1,23 @@
 version: '3.8'
 
 services:
-  # 1. Redis Server (Lưu trữ JWT Blacklist với tính năng TTL tự động giải phóng bộ nhớ)
+  # 1. Keycloak Identity and Access Management
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: keycloak-server
+    command: start-dev --http-port=8180
+    ports:
+      - "8180:8180"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8180;echo -e \"GET /health/ready HTTP/1.1\\r\\nhost: localhost:8180\\r\\nConnection: close\\r\\n\\r\\n\" >&3;grep \"HTTP/1.1 200 OK\" <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis Server (High performance store for revoked JWTs)
   redis:
     image: redis:7.4-alpine
     container_name: redis-gateway
@@ -16,14 +32,14 @@ services:
       timeout: 3s
       retries: 5
 
-  # 2. Mock User Auth Service (Dùng httpbin hoặc mock server mô phỏng backend service)
-  user-auth-service:
+  # 3. Downstream Microservice Simulation (e.g., User Service)
+  user-service:
     image: kennethreitz/httpbin
-    container_name: mock-user-auth-service
+    container_name: mock-user-service
     ports:
       - "8081:80"
 
-  # 3. API Gateway Service
+  # 4. Spring Cloud Gateway Service (Integrated with Keycloak & Redis Blacklist)
   api-gateway-service:
     build:
       context: .
@@ -34,8 +50,10 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - USER_AUTH_SERVICE_URI=http://user-auth-service:80
-      - JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8180/realms/master/protocol/openid-connect/certs
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8180/realms/master
+      - KEYCLOAK_URI=http://keycloak:8180
+      - USER_SERVICE_URI=http://user-service:80
     depends_on:
       redis:
         condition: service_healthy

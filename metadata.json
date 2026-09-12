@@ -1,6 +1,6 @@
 {
-  "name": "Spring Cloud Gateway JWT Blacklist",
-  "description": "Source code hoàn chỉnh và bộ giả lập kiểm thử Spring Cloud Gateway (Spring Boot 3.4, Java 17) tích hợp kiểm tra JWT Blacklist qua Redis Reactive.",
+  "name": "Spring Cloud Gateway Keycloak Redis Blacklist",
+  "description": "High-performance Spring Cloud Gateway (Spring Boot 3.4, Java 17) validating Keycloak OIDC JWT tokens and enforcing token revocation via Redis Reactive Blacklist.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

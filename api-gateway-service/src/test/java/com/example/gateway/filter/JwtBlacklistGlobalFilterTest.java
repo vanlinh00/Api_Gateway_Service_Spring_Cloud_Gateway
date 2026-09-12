@@ -2,8 +2,7 @@ package com.example.gateway.filter;
 
 import com.example.gateway.config.JwtProperties;
 import com.example.gateway.util.JwtUtils;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.example.gateway.util.KeycloakTokenClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +18,7 @@ import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,7 +52,7 @@ class JwtBlacklistGlobalFilterTest {
     }
 
     @Test
-    @DisplayName("Ngoại lệ: Request không có Header Authorization -> Trả về 401 Unauthorized")
+    @DisplayName("Exception: Request without Authorization Header returns 401 Unauthorized")
     void shouldReturn401WhenAuthorizationHeaderIsMissing() {
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/users/profile").build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
@@ -65,19 +65,24 @@ class JwtBlacklistGlobalFilterTest {
     }
 
     @Test
-    @DisplayName("Ngoại lệ: Token đã bị thu hồi trong Redis Blacklist -> Trả về 401 Unauthorized và log warning")
-    void shouldReturn401WhenTokenIsBlacklistedInRedis() {
-        String token = "valid.jwt.token";
-        String tokenId = "jti-123456";
-        String redisKey = "jwt:blacklist:jti-123456";
+    @DisplayName("Exception: Revoked Keycloak token in Redis Blacklist returns 401 Unauthorized")
+    void shouldReturn401WhenTokenIsBlacklistedInRedis() throws Exception {
+        String token = "valid.keycloak.token";
+        String tokenId = "c9c22881-8b2b-4d40-9da2-88749a5ad30a";
+        String redisKey = "jwt:blacklist:c9c22881-8b2b-4d40-9da2-88749a5ad30a";
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/users/profile")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
-        Claims claims = Jwts.claims().subject("user123").id(tokenId).build();
-        when(jwtUtils.extractAllClaims(token)).thenReturn(claims);
+        KeycloakTokenClaims claims = new KeycloakTokenClaims();
+        claims.setJti(tokenId);
+        claims.setSubject("user-sub-123");
+        claims.setUsername("john.doe");
+        claims.setRealmRoles(Arrays.asList("user", "admin"));
+
+        when(jwtUtils.parseAndValidateToken(token)).thenReturn(claims);
         when(jwtUtils.extractTokenIdentifier(token, claims)).thenReturn(tokenId);
         when(reactiveRedisTemplate.hasKey(eq(redisKey))).thenReturn(Mono.just(true));
 
@@ -89,19 +94,24 @@ class JwtBlacklistGlobalFilterTest {
     }
 
     @Test
-    @DisplayName("Thành công: Token hợp lệ và không có trong Redis -> Chuyển tiếp request đến service backend")
-    void shouldPassFilterWhenTokenIsNotBlacklisted() {
-        String token = "valid.jwt.token";
-        String tokenId = "jti-999999";
-        String redisKey = "jwt:blacklist:jti-999999";
+    @DisplayName("Success: Active Keycloak token not in Redis Blacklist forwards request with user headers")
+    void shouldPassFilterWhenTokenIsNotBlacklisted() throws Exception {
+        String token = "valid.keycloak.token";
+        String tokenId = "f8a11324-1111-2222-3333-444455556666";
+        String redisKey = "jwt:blacklist:f8a11324-1111-2222-3333-444455556666";
 
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/v1/users/profile")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
 
-        Claims claims = Jwts.claims().subject("user123").id(tokenId).build();
-        when(jwtUtils.extractAllClaims(token)).thenReturn(claims);
+        KeycloakTokenClaims claims = new KeycloakTokenClaims();
+        claims.setJti(tokenId);
+        claims.setSubject("user-sub-456");
+        claims.setUsername("alice.smith");
+        claims.setRealmRoles(Collections.singletonList("developer"));
+
+        when(jwtUtils.parseAndValidateToken(token)).thenReturn(claims);
         when(jwtUtils.extractTokenIdentifier(token, claims)).thenReturn(tokenId);
         when(reactiveRedisTemplate.hasKey(eq(redisKey))).thenReturn(Mono.just(false));
         when(chain.filter(any())).thenReturn(Mono.empty());

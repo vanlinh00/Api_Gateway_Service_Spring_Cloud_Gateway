@@ -42,6 +42,19 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
+        <!-- Spring Security Reactive OAuth2 Resource Server (Keycloak JWKS validation) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- Nimbus JOSE + JWT (Standard Keycloak & OIDC RSA/EC token verification) -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>9.47</version>
+        </dependency>
+
         <!-- JWT library (jjwt 0.12.x for Java 17 + Spring Boot 3) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
