@@ -1,0 +1,23 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: resource-service
+
+# Note: No Keycloak JWKS endpoint and no Redis configuration needed here.
+# Authentication and JWT revocation have already been fully verified at API Gateway.
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.example.resource: DEBUG

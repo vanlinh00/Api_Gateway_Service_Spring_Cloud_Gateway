@@ -57,6 +57,14 @@ spring:
           filters:
             - AddRequestHeader=X-Gateway-Name, api-gateway-service
 
+        # Route 4: Resource Microservice (Demonstrates Author without Authen)
+        - id: resource-service-route
+          uri: ${RESOURCE_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/resources/**
+          filters:
+            - AddRequestHeader=X-Gateway-Name, api-gateway-service
+
       globalcors:
         cors-configurations:
           '[/**]':
