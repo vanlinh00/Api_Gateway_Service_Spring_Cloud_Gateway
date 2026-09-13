@@ -24,8 +24,8 @@ com.example.gateway
 │
 ├── config/
 │   ├── GatewaySecurityProperties.java      # Type-safe @ConfigurationProperties
-│   ├── RedisConfig.java                    # Reactive Lettuce connection pool & templates
-│   ├── SecurityConfig.java                 # WebFlux security & Keycloak JWT decoders
+│   ├── RedisConfig.java                    # Reactive Lettuce connection pool & template
+│   ├── SecurityConfig.java                 # WebFlux security filter chain
 │   └── CircuitBreakerConfig.java           # Reactive Resilience4j circuit breakers
 │
 ├── security/
