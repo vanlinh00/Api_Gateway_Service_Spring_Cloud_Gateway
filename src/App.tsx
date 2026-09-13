@@ -41,6 +41,14 @@ export default function App() {
             <ul className="space-y-1.5 text-xs text-slate-400">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Kiến trúc phân tầng: <code className="text-slate-300">core</code>, <code className="text-slate-300">security</code>, <code className="text-slate-300">filter/global</code></span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Distributed Tracing (<code className="text-slate-300">X-Correlation-Id</code>)</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>Xác thực chữ ký Keycloak RS256 JWKS</span>
               </li>
               <li className="flex items-center gap-2">
@@ -49,7 +57,7 @@ export default function App() {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Chặn token lậu/hết hạn/logout (HTTP 401)</span>
+                <span>Resilience4j Circuit Breaker & Fallback Handler</span>
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />

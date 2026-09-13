@@ -5,20 +5,20 @@ spring:
   application:
     name: api-gateway-service
 
-  # Spring Data Redis Reactive (Lettuce Non-blocking driver)
+  # Spring Data Redis Reactive (Lettuce Non-blocking driver with connection pool)
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
       database: 0
-      timeout: 3000ms
+      timeout: 2000ms
       lettuce:
         pool:
-          max-active: 16
-          max-idle: 8
-          min-idle: 2
-          max-wait: 2000ms
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
+          max-wait: 1000ms
         shutdown-timeout: 100ms
 
   # Spring Security OAuth2 Resource Server for Keycloak
@@ -41,28 +41,40 @@ spring:
           filters:
             - AddRequestHeader=X-Gateway-Name, api-gateway-service
 
-        # Route 2: User Microservice
+        # Route 2: User Microservice (with Circuit Breaker Fallback)
         - id: user-service-route
           uri: ${USER_SERVICE_URI:http://localhost:8081}
           predicates:
             - Path=/api/v1/users/**
           filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCircuitBreaker
+                fallbackUri: forward:/fallback/user-service
             - AddRequestHeader=X-Gateway-Name, api-gateway-service
 
-        # Route 3: Order Microservice
+        # Route 3: Order Microservice (with Circuit Breaker Fallback)
         - id: order-service-route
           uri: ${ORDER_SERVICE_URI:http://localhost:8082}
           predicates:
             - Path=/api/v1/orders/**
           filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order-service
             - AddRequestHeader=X-Gateway-Name, api-gateway-service
 
-        # Route 4: Resource Microservice (Demonstrates Author without Authen)
+        # Route 4: Resource Microservice (with Circuit Breaker Fallback)
         - id: resource-service-route
           uri: ${RESOURCE_SERVICE_URI:http://localhost:8082}
           predicates:
             - Path=/api/v1/resources/**
           filters:
+            - name: CircuitBreaker
+              args:
+                name: resourceServiceCircuitBreaker
+                fallbackUri: forward:/fallback/resource-service
             - AddRequestHeader=X-Gateway-Name, api-gateway-service
 
       globalcors:
@@ -74,29 +86,44 @@ spring:
               - POST
               - PUT
               - DELETE
+              - PATCH
               - OPTIONS
             allowedHeaders: "*"
 
-# Custom JWT & Keycloak Blacklist Properties
+# Enterprise Gateway Security Configuration
+gateway:
+  security:
+    keycloak:
+      jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/master/protocol/openid-connect/certs}
+      issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/master}
+    blacklist:
+      enabled: true
+      prefix: "jwt:blacklist:"
+      timeout-ms: 800
+    excluded-paths:
+      - /realms/**
+      - /resources/**
+      - /api/v1/auth/**
+      - /actuator/**
+      - /fallback/**
+
+# Legacy / Alias properties for backwards compatibility
 jwt:
-  # Keycloak JWKS & Realm settings (Asymmetric RSA/EC signature verification)
   jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/master/protocol/openid-connect/certs}
   issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/master}
-  # Redis Key prefix for blacklisted token IDs
   blacklist-prefix: "jwt:blacklist:"
-  # Whitelisted public paths that bypass JWT Blacklist verification
   excluded-paths:
     - /realms/**
     - /resources/**
     - /api/v1/auth/**
-    - /actuator/health
-    - /actuator/info
+    - /actuator/**
+    - /fallback/**
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,metrics
+        include: health,info,gateway,metrics,circuitbreakers
   endpoint:
     health:
       show-details: always
@@ -105,6 +132,6 @@ logging:
   level:
     root: INFO
     org.springframework.cloud.gateway: INFO
-    com.example.gateway.filter: DEBUG
+    com.example.gateway: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
