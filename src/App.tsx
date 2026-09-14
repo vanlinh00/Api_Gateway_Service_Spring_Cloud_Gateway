@@ -61,6 +61,10 @@ export default function App() {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Spring Cloud LoadBalancer (<code className="text-slate-300">lb://</code>) + Caffeine Cache</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>Bổ sung headers tin cậy (<code className="text-slate-300">X-Auth-*</code>)</span>
               </li>
             </ul>

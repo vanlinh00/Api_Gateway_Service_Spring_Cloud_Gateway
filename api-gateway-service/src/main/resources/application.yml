@@ -23,6 +23,34 @@ spring:
 
   # Spring Cloud Gateway Routing Configuration
   cloud:
+    # Spring Cloud LoadBalancer Caching & Discovery Configuration
+    loadbalancer:
+      cache:
+        enabled: true
+        ttl: 30s
+        capacity: 256
+        caffeine:
+          spec: initialCapacity=50,maximumSize=500,expireAfterWrite=30s
+      health-check:
+        refetch-instances: true
+        repeat-health-check: true
+        interval: 15s
+
+    # Default static instances for standalone development / Docker environments
+    # (Automatically overridden when Eureka/Consul/K8s discovery is active)
+    discovery:
+      client:
+        simple:
+          instances:
+            user-service:
+              - uri: ${USER_SERVICE_INSTANCE_1:http://localhost:8081}
+              - uri: ${USER_SERVICE_INSTANCE_2:http://localhost:8083}
+            order-service:
+              - uri: ${ORDER_SERVICE_INSTANCE_1:http://localhost:8082}
+              - uri: ${ORDER_SERVICE_INSTANCE_2:http://localhost:8084}
+            resource-service:
+              - uri: ${RESOURCE_SERVICE_INSTANCE_1:http://localhost:8082}
+
     gateway:
       routes:
         # Route 1: Keycloak Auth Endpoint (Proxy or direct pass-through)
@@ -31,9 +59,9 @@ spring:
           predicates:
             - Path=/realms/**, /resources/**
 
-        # Route 2: User Microservice (with Resilience4j Circuit Breaker)
+        # Route 2: User Microservice (LoadBalanced via Spring Cloud LoadBalancer)
         - id: user-service-route
-          uri: ${USER_SERVICE_URI:http://localhost:8081}
+          uri: ${USER_SERVICE_URI:lb://user-service}
           predicates:
             - Path=/api/v1/users/**
           filters:
@@ -42,9 +70,9 @@ spring:
                 name: userServiceCircuitBreaker
                 fallbackUri: forward:/fallback/user-service
 
-        # Route 3: Order Microservice (with Resilience4j Circuit Breaker)
+        # Route 3: Order Microservice (LoadBalanced via Spring Cloud LoadBalancer)
         - id: order-service-route
-          uri: ${ORDER_SERVICE_URI:http://localhost:8082}
+          uri: ${ORDER_SERVICE_URI:lb://order-service}
           predicates:
             - Path=/api/v1/orders/**
           filters:
@@ -53,9 +81,9 @@ spring:
                 name: orderServiceCircuitBreaker
                 fallbackUri: forward:/fallback/order-service
 
-        # Route 4: Resource Microservice (with Resilience4j Circuit Breaker)
+        # Route 4: Resource Microservice (LoadBalanced via Spring Cloud LoadBalancer)
         - id: resource-service-route
-          uri: ${RESOURCE_SERVICE_URI:http://localhost:8082}
+          uri: ${RESOURCE_SERVICE_URI:lb://resource-service}
           predicates:
             - Path=/api/v1/resources/**
           filters:

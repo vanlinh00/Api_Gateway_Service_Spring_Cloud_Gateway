@@ -26,7 +26,8 @@ com.example.gateway
 │   ├── GatewaySecurityProperties.java      # Type-safe @ConfigurationProperties
 │   ├── RedisConfig.java                    # Reactive Lettuce connection pool & template
 │   ├── SecurityConfig.java                 # WebFlux security filter chain
-│   └── CircuitBreakerConfig.java           # Reactive Resilience4j circuit breakers
+│   ├── CircuitBreakerConfig.java           # Reactive Resilience4j circuit breakers
+│   └── LoadBalancerConfig.java             # Spring Cloud LoadBalancer & Caffeine cache
 │
 ├── security/
 │   ├── jwt/
@@ -67,3 +68,9 @@ com.example.gateway
 
 5. **RFC 7807 Standardized Unified Error Handling**:
    - `GlobalErrorWebExceptionHandler` intercepts all reactive exceptions (missing header, expired token, revoked token, bad gateway) and produces uniform, consistent JSON envelopes.
+
+6. **Client-Side Reactive Load Balancing (Spring Cloud LoadBalancer)**:
+   - Microservices are routed using `lb://<service-name>` with non-blocking round-robin dispatching.
+   - High-throughput instance caching via Caffeine (`initialCapacity=50, maximumSize=500, ttl=30s`).
+   - Supports plug-and-play dynamic discovery (Eureka/Consul/K8s) alongside resilient static instance fallback for standalone/Docker environments.
+

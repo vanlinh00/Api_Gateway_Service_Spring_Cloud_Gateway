@@ -30,6 +30,18 @@
             <artifactId>spring-cloud-starter-gateway</artifactId>
         </dependency>
 
+        <!-- Spring Cloud LoadBalancer (Reactive Client-Side Load Balancing) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+
+        <!-- Caffeine Cache for LoadBalancer Service Instance Caching -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- Reactive Circuit Breaker Resilience4j -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
